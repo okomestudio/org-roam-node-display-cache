@@ -4,7 +4,7 @@
 ;;
 ;; Author: Taro Sato <okomestudio@gmail.com>
 ;; URL: https://github.com/okomestudio/org-roam-node-display-cache/
-;; Version: 0.1.1
+;; Version: 0.1.2
 ;; Keywords:
 ;; Package-Requires: ((emacs \"26.1\") (org-roam "20250527.1558") (ok "0.2.3"))
 ;;
@@ -76,24 +76,6 @@ Around-advise a function FUN in `org-roam-node-display-template'."
       (org-roam-node-display-cache--save rendered node total-width)
       rendered)))
 
-;;; Save Across Emacs Sessions
-
-;; Hash table cannot be serialized easily to persist in a file. The
-;; functions thus converts it to an alist in the de/ser layer.
-
-(defun org-roam-node-display-cache--serialize (ht)
-  "Convert hash table HT to an alist."
-  (let (alist)
-    (maphash (lambda (k v) (push (cons k v) alist)) ht)
-    alist))
-
-(defun org-roam-node-display-cache--deserialize (alist)
-  "Convert ALIST to a hash table."
-  (let ((ht (make-hash-table :test 'equal)))
-    (dolist (entry alist)
-      (puthash (car entry) (cdr entry) ht))
-    ht))
-
 ;; TODO(2025-06-08): Implement builtin cache persistence mechanism.
 
 ;;; Minor Mode Interface
@@ -103,27 +85,10 @@ Around-advise a function FUN in `org-roam-node-display-template'."
   (add-hook 'after-save-hook #'org-roam-node-display-cache--maybe-remove)
   (when (functionp org-roam-node-display-template)
     (advice-add org-roam-node-display-template :around
-                #'org-roam-node-display-cache--ad))
-
-  ;; When `desktop-mode' is in use, use it to persist cache.
-  (when (and (boundp 'desktop-save-mode) desktop-save-mode)
-    (add-to-list 'desktop-globals-to-save 'org-roam-node-display-cache--cache)
-    (add-to-list 'desktop-var-serdes-funs
-                 '(org-roam-node-display-cache--cache
-                   org-roam-node-display-cache--serialize
-                   org-roam-node-display-cache--deserialize))))
+                #'org-roam-node-display-cache--ad)))
 
 (defun org-roam-node-display-cache-mode--deactivate ()
   "Deactivate `org-roam-node-display-cache-mode'."
-  (when (and (boundp 'desktop-save-mode) desktop-save-mode)
-    (setq desktop-var-serdes-funs
-          (delete '(org-roam-node-display-cache--cache
-                    org-roam-node-display-cache--serialize
-                    org-roam-node-display-cache--deserialize)
-                  desktop-var-serdes-funs))
-    (setq desktop-globals-to-save
-          (delete 'org-roam-node-display-cache--cache desktop-globals-to-save)))
-
   (when (functionp org-roam-node-display-template)
     (advice-remove org-roam-node-display-template
                    #'org-roam-node-display-cache--ad))
@@ -132,6 +97,8 @@ Around-advise a function FUN in `org-roam-node-display-template'."
 ;;;###autoload
 (define-minor-mode org-roam-node-display-cache-mode
   "Add in-memory cache layer to speed up Org Roam completing read."
+  :init-value nil
+  :lighter "org-roam-node-display-cache"
   :global t
   :group 'org-roam
   (if org-roam-node-display-cache-mode
