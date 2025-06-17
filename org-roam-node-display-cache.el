@@ -80,11 +80,22 @@ Around-advise a function FUN in `org-roam-node-display-template'."
 
 ;; TODO(2025-06-08): Implement builtin cache persistence mechanism.
 
+(defun org-roam-node-display-cache--delete-file-ad (fun file &rest rest)
+  "Maintain cache consistency on FILE deletion by FUN."
+  (let ((org-roam-file-p (and (not (auto-save-file-name-p file))
+                              (not (backup-file-name-p file))
+                              (org-roam-file-p file))))
+    (apply fun `(,file ,@rest))
+    (when (and org-roam-file-p (not (file-exists-p file)))
+      (remhash file org-roam-node-display-cache--cache))))
+
 ;;; Minor Mode Interface
 
 (defun org-roam-node-display-cache-mode--activate ()
   "Activate `org-roam-node-display-cache-mode'."
   (add-hook 'after-save-hook #'org-roam-node-display-cache--maybe-remove)
+  (advice-add #'vc-delete-file :around #'org-roam-node-display-cache--delete-file-ad)
+  (advice-add #'delete-file :around #'org-roam-node-display-cache--delete-file-ad)
   (when (functionp org-roam-node-display-template)
     (advice-add org-roam-node-display-template :around
                 #'org-roam-node-display-cache--ad)))
@@ -94,6 +105,8 @@ Around-advise a function FUN in `org-roam-node-display-template'."
   (when (functionp org-roam-node-display-template)
     (advice-remove org-roam-node-display-template
                    #'org-roam-node-display-cache--ad))
+  (advice-remove #'delete-file #'org-roam-node-display-cache--delete-file-ad)
+  (advice-remove #'vc-delete-file #'org-roam-node-display-cache--delete-file-ad)
   (remove-hook 'after-save-hook #'org-roam-node-display-cache--maybe-remove))
 
 ;;;###autoload
