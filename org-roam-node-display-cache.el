@@ -4,7 +4,7 @@
 ;;
 ;; Author: Taro Sato <okomestudio@gmail.com>
 ;; URL: https://github.com/okomestudio/org-roam-node-display-cache/
-;; Version: 0.2.1
+;; Version: 0.2.2
 ;; Keywords:
 ;; Package-Requires: ((emacs \"26.1\") (org-roam "20250527.1558") (ok "0.5.2"))
 ;;
@@ -57,10 +57,6 @@
   "Remove NODE item from the in-memory cache."
   (remhash (org-roam-node-file node) org-roam-node-display-cache--cache))
 
-(defun org-roam-node-display-cache--clear ()
-  "Clear the in-memory cache."
-  (clrhash org-roam-node-display-cache--cache))
-
 (defun org-roam-node-display-cache--maybe-remove ()
   "Potentially remove in-memory cached item on file update."
   (if-let ((_ org-roam-node-display-cache--cache)
@@ -88,6 +84,11 @@ Around-advise a function FUN in `org-roam-node-display-template'."
     (apply fun `(,file ,@rest))
     (when (and org-roam-file-p (not (file-exists-p file)))
       (remhash file org-roam-node-display-cache--cache))))
+
+(defun org-roam-node-display-cache-clear ()
+  "Clear the in-memory cache."
+  (interactive)
+  (clrhash org-roam-node-display-cache--cache))
 
 ;;; Minor Mode Interface
 
