@@ -4,7 +4,7 @@
 ;;
 ;; Author: Taro Sato <okomestudio@gmail.com>
 ;; URL: https://github.com/okomestudio/org-roam-node-display-cache/
-;; Version: 0.2.2
+;; Version: 0.2.3
 ;; Keywords:
 ;; Package-Requires: ((emacs \"26.1\") (org-roam "20250527.1558") (ok "0.5.2"))
 ;;
@@ -88,7 +88,7 @@ Around-advise a function FUN in `org-roam-node-display-template'."
 (defun org-roam-node-display-cache-clear ()
   "Clear the in-memory cache."
   (interactive)
-  (clrhash org-roam-node-display-cache--cache))
+  (setq org-roam-node-display-cache--cache (make-hash-table :test #'equal)))
 
 ;;; Minor Mode Interface
 
